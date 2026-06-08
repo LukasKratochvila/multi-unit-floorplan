@@ -157,7 +157,7 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
             # Create heatmaps
             heat = [sub_dir for sub_dir in sub_dirs if not any(['heatmap' in file.split('.')[0] for file in os.listdir(
                 os.path.join(aug_data_dir, sub_dir))]) or recreate]
-            create_heatmap_from_paths(dataset_augment, data_dir=aug_data_dir, sub_dirs=heat, show=False)
+            create_heatmap_from_paths(dataset_augment, data_dir=os.path.dirname(data_dir), sub_dirs=heat, show=False)
         # Create data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(aug_ann_dir)]) or recreate:
             create_dataset(dataset_augment, type='default', input_dirs=aug_ann_dir, output_dir=aug_ann_dir,
