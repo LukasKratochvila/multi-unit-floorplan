@@ -121,7 +121,8 @@ def create_heatmap_from_config(config, show=False):
 
 
 def generate_heatmap(c, show, mask):
-    img = (mask == c + 1).astype(np.uint8)
+    idx = (mask == c+1)
+    img = (idx).astype(np.uint8)
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(img)
 
     if show:
@@ -186,21 +187,26 @@ def process(config, show, folder):
         plt.savefig('heatmap_label', bbox_inches='tight', pad_inches=0)
 
     for c in config['classes_indices']:
-        heatmap_path = os.path.join(path, folder, 'heatmap_' + config['classes'][c] + '.npy')
+        heatmap_path = os.path.join(path, folder, 'heatmap_' + config['classes'][c] + '.npz')
         # if True or not os.path.isfile(heatmap_path):
         if not os.path.isfile(heatmap_path):
             data = generate_heatmap(c, show, mask)
             heatmap, endpoints, contours_map = data
             if len(np.array(endpoints).shape) != 2:
                 data = [[], endpoints, []]
-            np.save(heatmap_path, data)
+            #print(np.array(data[0]).shape, np.array(data[1]).shape, data[2].shape)
+            np.savez(heatmap_path, h=heatmap, e=endpoints, c=contours_map)
+            data={}
+            data["h"] = heatmap
+            data["e"] = endpoints
+            data["c"] = contours_map
         else:
             data = np.load(heatmap_path, allow_pickle=True)
 
         create_heatmap = True
         if create_heatmap:
             img = (mask == c + 1).astype(np.uint8)
-            heatmap, endpoints, contours_map = data
+            heatmap, endpoints, contours_map = data["h"], data["e"], data["c"]
 
             avg_heatmap = np.zeros(img.shape, np.float32)
             if len(np.array(endpoints).shape) != 2:
@@ -254,7 +260,7 @@ def process(config, show, folder):
                 plt.show()
 
     toc = time.time()
-    print('Done: ', folder, (toc - tic), 's')
+    #print('Done: ', folder, (toc - tic), 's')
 
 
 def single(config):

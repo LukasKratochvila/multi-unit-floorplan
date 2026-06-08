@@ -13,10 +13,11 @@ def create_mask(sub_dirs, path='annotations/hdd/r3d/', classes=None):
         file_base = os.path.join(path, sub_dir)
         openings = Image.open(os.path.join(file_base, classes[0] + '.png'))
 
-        mask = np.zeros(openings.size, np.uint8)
+        mask = np.zeros((openings.size[1],openings.size[0]), np.uint8)
         for c in range(len(classes)):
             img = Image.open(os.path.join(file_base, classes[c] + '.png')).convert('L')
-            mask[np.array(img) == 255] = (c + 1)
+            idx = (np.array(img) == 255)
+            mask[idx] = (c + 1)
         mask = Image.fromarray(mask)
         mask.save(os.path.join(file_base, 'mask.png'))
 
