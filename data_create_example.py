@@ -40,7 +40,7 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
                 os.mkdir(os.path.join(data_dir, file))
                 for f in files_to_copy:
                     if f.split('.')[-1] == 'jpg':
-                        out = 'input.jpg'
+                        out = 'input.png'
                     else:
                         out = f.split('_')[-1]
                     shutil.move(os.path.join(data_dir, f), os.path.join(data_dir, file, out))
@@ -62,7 +62,7 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
             if overs or recreate:
                 print('Creating overlay...')
                 for over in tqdm(overs, "Processing"):
-                    create_overlay(over, data_dir=data_dir, img_name='input.jpg',
+                    create_overlay(over, data_dir=data_dir, img_name='input.png',
                                    mask_name='mask.png', save=True)
         # Creation data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(ann_dir)]) or recreate:
