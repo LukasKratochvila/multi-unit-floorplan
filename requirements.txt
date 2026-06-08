@@ -78,3 +78,5 @@ Werkzeug
 wrapt
 yapf
 zipp
+mlstructfp
+pdf2image
