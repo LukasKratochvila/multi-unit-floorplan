@@ -234,8 +234,6 @@ def train(config):
                           log_dir_path=config.log_dir)
         
         if kFold > 0:
-            baseline_path = config.log_dir + "baseline"
-            unet_model.save_weights(baseline_path)
             for i in range(kFold):
                 train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                               buffer_size=train_buffer_size,
@@ -243,7 +241,10 @@ def train(config):
                                                                               n_upsample=n_up_sample_block,
                                                                               reduction_ratio=data_reduction, kfold=i)
                 trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
-                unet_model.load_weights(baseline_path)
+
+                unet_model = create_model(model_type, classes, optimizer, loss_function, metrics, run_eagerly, 
+                                      backbone, batch_norm, filters, output_activation, backbone_weights, 
+                                      aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision, hhdc, cam)
         else:
             train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                               buffer_size=train_buffer_size,
