@@ -127,22 +127,28 @@ def split_kfold_dataset(dataset, input_file: str = 'input.png', data_dir: str = 
 
     fold_size = len(train_dir) // kfold
 
+    copy_filenames(output_dir, dataset, "test", test, input_file=input_file, heatmaps=heatmaps)
     for fold in range(kfold):
 
         val_idx = train_dir[fold * fold_size:(fold + 1) * fold_size]
         train_idx = np.setdiff1d(train_dir, val_idx)
 
-        for dir, type in zip([train_idx, val_idx, test], ['train', 'val', 'test']):
-            f = open(os.path.join(output_dir, "k" + fold + '_' + dataset + '_' + type + '.txt'), 'w')
-            for i in dir:
-                input = os.path.join(dataset, i, input_file)
-                mask = os.path.join(dataset, i, 'mask.png')
-                line = input + '\t' + mask
-                for h in heatmaps:
-                    line += '\t' + os.path.join(dataset, i, 'heatmap_' + h + '.png')
-                f.write(line + '\n')
-            f.close()
+        copy_filenames(output_dir, dataset, "train", train_idx, fold, input_file, heatmaps)
+        copy_filenames(output_dir, dataset, "val", val_idx, fold, input_file, heatmaps)
+        print("Fold: {0}, train: {1}, val: {2}".format(fold, len(train_idx), len(val_idx)))
+
     return sub_dirs
+
+def copy_filenames(output_dir: str, dataset: str, dataset_type: str, dataset_idx: list, fold: int = None, input_file: str = "input.png", heatmaps: list = None):
+    f = open(os.path.join(output_dir, dataset + '_' + fold + '_' + dataset_type + '.txt'), 'w')
+    for i in dataset_idx:
+        input = os.path.join(dataset, i, input_file)
+        mask = os.path.join(dataset, i, 'mask.png')
+        line = input + '\t' + mask
+        for h in heatmaps:
+            line += '\t' + os.path.join(dataset, i, 'heatmap_' + h + '.png')
+        f.write(line + '\n')
+    f.close()
 
 
 if __name__ == '__main__':
