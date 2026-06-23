@@ -118,7 +118,7 @@ def train(config):
     train_buffer_size = config.get('train_buffer_size', 1)
     checkpoint_weights_only = config.get('checkpoint_weights_only', False)
     loss_function = config.get('loss_functions', [])
-    optimizer = config.get('optimizer', None)
+    optimizer_var = config.get('optimizer', None)
     cfg_metrics = config.get('metrics', [])
     run_eagerly = config.get('run_eagerly', False)
     verbose = config.get('verbose', 0)
@@ -128,7 +128,7 @@ def train(config):
         ValueError('Dataset must be specify!')
     if not os.path.exists(data_root):
         ValueError(f'Data dir: {data_root} does not exist!')
-    if not optimizer:
+    if not optimizer_var:
         ValueError('Optimizer must be specify!')
     if model_type not in ['zeng', 'cubicasa5k', 'unet', 'unetpp', 'unet3p', 'ours_multi', 'cab1', 'cab2']:
         ValueError(f'Model: {model_type} is not implemented!')
@@ -146,13 +146,13 @@ def train(config):
             else:
                 ValueError(f'Metric: {m} is not Implemented!')
 
-        if optimizer.get('type', None) == 'Adam':
-            loss_scale = optimizer.get('lossScale', None)
-            optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer.get('learning_rate', 1e-4))
+        if optimizer_var.get('type', None) == 'Adam':
+            loss_scale = optimizer_var.get('lossScale', None)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer_var.get('learning_rate', 1e-4))
             if loss_scale:
                 optimizer = LossScaleOptimizer(optimizer, loss_scale='dynamic')
         else:
-            ValueError(f'Not implemented optimizer: {optimizer}')
+            ValueError(f'Not implemented optimizer: {optimizer_var}')
 
         if not loss_function:
             ValueError('Loss function must be specify!')
@@ -233,9 +233,9 @@ def train(config):
         if kFold > 0:
             acc = []            
             for i in range(kFold):
-                if optimizer.get('type', None) == 'Adam':
-                    loss_scale = optimizer.get('lossScale', None)
-                    optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer.get('learning_rate', 1e-4))
+                if optimizer_var.get('type', None) == 'Adam':
+                    loss_scale = optimizer_var.get('lossScale', None)
+                    optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer_var.get('learning_rate', 1e-4))
                     if loss_scale:
                         optimizer = LossScaleOptimizer(optimizer, loss_scale='dynamic')
 
