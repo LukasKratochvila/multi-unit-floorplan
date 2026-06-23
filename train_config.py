@@ -230,7 +230,8 @@ def train(config):
         if hasattr(unet_model, 'automatic_loss'):
             callbacks.append(AutomaticWeightedLossCallback(aaf_count > 0))
         
-        if kFold > 0:            
+        if kFold > 0:
+            acc = []            
             for i in range(kFold):
                 trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
                           learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
@@ -241,11 +242,14 @@ def train(config):
                                                                               base_dir=data_root,
                                                                               n_upsample=n_up_sample_block,
                                                                               reduction_ratio=data_reduction, kfold=i)
-                trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
+                h = trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
+                acc.append(h.history["categorical_accuracy"])
 
                 unet_model = create_model(model_type, classes, optimizer, loss_function, metrics, run_eagerly, 
                                       backbone, batch_norm, filters, output_activation, backbone_weights, 
                                       aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision, hhdc, cam)
+            print("Results")
+            print(",".join(acc))
         else:
             trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
                           learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
