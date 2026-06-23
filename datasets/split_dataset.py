@@ -3,6 +3,8 @@ import os
 
 from typing import List
 
+import numpy as np
+
 heatmap_classes = {
     'r3d_augment': ['openings'],
     'cubicasa5k_augment': ['doors', 'windows'],
@@ -75,6 +77,71 @@ def split_dataset(dataset, input_file: str = 'input.png', data_dir: str = 'annot
                 line += '\t' + os.path.join(dataset, i, 'heatmap_' + h + '.png')
             f.write(line + '\n')
         f.close()
+    return sub_dirs
+
+def split_kfold_dataset(dataset, input_file: str = 'input.png', data_dir: str = 'annotations/hdd/',
+                        output_dir: str = './', split_ration: float = 0.6, kfold = 10, filtering: List = None,
+                        subfolders_only: bool = False) -> List[str]:
+    """
+    Function for creation tran, val, test sets descriptions - kfold variants
+
+    :param dataset: Name of new dataset
+    :param input_file: Filename used for processing as input
+    :param data_dir: Folder with input data
+    :param output_dir: Folder where create description
+    :param split_ration: Ration between train and test, e.g. 0.6 means train sets includes 0.6% of all data
+    :param kfold: define number of folds
+    :param filtering: Subset of folders which will be use
+    :param subfolders_only: If true - Not create description, only returns subfolders
+
+    :return: returns list of subfolders in dataset
+    """
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    heatmaps = heatmap_classes.get(dataset, [])
+
+    if dataset == 'cubicasa':
+        sub_dirs = []
+        for file in ["train.txt", "test.txt", "val.txt"]:
+            sub_dirs += open(os.path.join(data_dir, file), 'r').read().splitlines()
+        sub_dirs = [d[1:] for d in sub_dirs]
+        if filtering:
+            sub_dirs = [d for d in sub_dirs if d.split('/')[-2] in filtering]
+            filtering = None
+    else:
+        sub_dirs = os.listdir(data_dir)
+    if filtering:
+        sub_dirs = [d for d in sub_dirs if d in filtering]
+
+    if subfolders_only:
+        print("Sub folders only: Dataset: {0} Total samples: {1}".format(dataset, len(sub_dirs)))
+        return sub_dirs
+
+    random.shuffle(sub_dirs)
+
+    n_train = int(split_ration * len(sub_dirs))
+    n_test = int((len(sub_dirs) - n_train)) 
+    train_dir = sub_dirs[:n_train]
+    test = sub_dirs[n_train:]
+    print("Total: {0}, train: {1}, test: {2}".format(len(sub_dirs), n_train, n_test))
+
+    fold_size = len(train_dir) // kfold
+
+    for fold in range(kfold):
+
+        val_idx = train_dir[fold * fold_size:(fold + 1) * fold_size]
+        train_idx = np.setdiff1d(train_dir, val_idx)
+
+        for dir, type in zip([train_idx, val_idx, test], ['train', 'val', 'test']):
+            f = open(os.path.join(output_dir, "k" + fold + '_' + dataset + '_' + type + '.txt'), 'w')
+            for i in dir:
+                input = os.path.join(dataset, i, input_file)
+                mask = os.path.join(dataset, i, 'mask.png')
+                line = input + '\t' + mask
+                for h in heatmaps:
+                    line += '\t' + os.path.join(dataset, i, 'heatmap_' + h + '.png')
+                f.write(line + '\n')
+            f.close()
     return sub_dirs
 
 
