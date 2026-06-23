@@ -266,10 +266,6 @@ def train(config):
     tf.keras.backend.clear_session()
     print('========== DONE ==========')
 
-
-if __name__ == "__main__":
-    main()
-
 def create_model(model_type: str, classes, optimizer, loss_function, metrics, run_eagerly, backbone, batch_norm, filters,
                  output_activation, backbone_weights, aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision,
                  hhdc, cam):
@@ -389,3 +385,6 @@ def create_model(model_type: str, classes, optimizer, loss_function, metrics, ru
                             metrics=metrics,
                             run_eagerly=run_eagerly)
     return unet_model
+
+if __name__ == "__main__":
+    main()
