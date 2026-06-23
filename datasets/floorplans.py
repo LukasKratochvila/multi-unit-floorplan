@@ -88,7 +88,7 @@ def preprocess_normalize(img, mask, heatmaps, width, height, classes):
 
 def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None, kfold=None):
     
-    name = + f"{kfold}_" + type if kfold else type
+    name = f"{kfold}_" + type if kfold else type
     
     raw_dataset = tf.data.TFRecordDataset(name + '.tfrecords')
     if normalize:
