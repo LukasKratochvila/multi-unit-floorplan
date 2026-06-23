@@ -111,9 +111,9 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
     val_paths = []
     test_paths = []
 
-    split_filename = dataset + "_" + kfold if kfold else dataset
-
     for input_dir, dataset in zip(input_dirs, datasets):
+        split_filename = dataset + "_" + kfold if kfold else dataset
+
         train_paths += open(os.path.join(input_dir, split_filename + '_train.txt'), 'r').read().splitlines()
         val_paths += open(os.path.join(input_dir, split_filename + '_val.txt'), 'r').read().splitlines()
         test_paths += open(os.path.join(input_dir, split_filename + '_test.txt'), 'r').read().splitlines()
