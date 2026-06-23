@@ -6,7 +6,7 @@ import utils
 
 from datasets.floorplans import create_dataset
 from datasets.create_data_mask import create_mask, create_overlay
-from datasets.split_dataset import split_dataset
+from datasets.split_dataset import split_kfold_dataset
 
 from datasets.augment import augmentation
 from datasets.create_heatmap import create_heatmap_from_paths
@@ -47,8 +47,8 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
 
         # Creation data description and get all samples
         print('Creating dataset splits...')
-        sub_dirs = split_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                                 split_ration=0.8, subfolders_only=os.path.exists(ann_dir) and not recreate)
+        sub_dirs = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
+                                 split_ration=0.8, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
         # Creation of masks
         masks = [sub_dir for sub_dir in sub_dirs
                  if not os.path.exists(os.path.join(data_dir, sub_dir, 'mask.png'))]
@@ -73,8 +73,8 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
     elif data_source in ['cubicasa5k', 'cubicasa5k_fix']:
         # Creation data description and get all samples and filtering w.r.o. paper
         print('Creating dataset splits...')
-        sub_dirs = split_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                                 filtering=None, subfolders_only=os.path.exists(ann_dir) and not recreate)
+        sub_dirs = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
+                                 filtering=None, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
         # Creation of labels and mask file
         masks = [sub_dir for sub_dir in sub_dirs
                  if not os.path.exists(os.path.join(data_dir, sub_dir, 'mask.png')) or recreate]
@@ -109,8 +109,8 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
         # Creation data description
         print('Creating dataset splits...')
         cvc_select = [d for d in os.listdir(data_dir) if not d == 'ImagesGT']  # Remove GT folder
-        _ = split_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                          filtering=cvc_select, subfolders_only=os.path.exists(ann_dir) and not recreate)
+        _ = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
+                          filtering=cvc_select, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
 
         # Creation data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(ann_dir)]) or recreate:
@@ -127,8 +127,8 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
 
         # Creation data description
         print('Creating dataset splits...')
-        _ = split_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                          subfolders_only=os.path.exists(ann_dir) and not recreate)
+        _ = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
+                          subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
 
         # Creation data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(ann_dir)]) or recreate:
@@ -151,8 +151,8 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
         aug_data_dir = os.path.join(os.path.dirname(data_dir), dataset_augment)
         if not os.path.exists(aug_data_dir) or recreate:
             augmentation(data_source, input_dir=os.path.dirname(data_dir), output_dir=aug_data_dir, ann_dir=ann_dir)
-        sub_dirs = split_dataset(dataset_augment, input_file=input_image_name, data_dir=aug_data_dir, output_dir=aug_ann_dir,
-                                 subfolders_only=os.path.exists(aug_ann_dir) and not recreate)
+        sub_dirs = split_kfold_dataset(dataset_augment, input_file=input_image_name, data_dir=aug_data_dir, output_dir=aug_ann_dir,
+                                 subfolders_only=os.path.exists(aug_ann_dir) and not recreate, kfold=10)
         if heatmap_inds:
             # Create heatmaps
             heat = [sub_dir for sub_dir in sub_dirs if not any(['heatmap' in file.split('.')[0] for file in os.listdir(
