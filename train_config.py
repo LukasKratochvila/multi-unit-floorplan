@@ -214,121 +214,9 @@ def train(config):
             custom_objects = {'loss_function': loss_function}
             unet_model = tf.keras.models.load_model(resume_from, custom_objects=custom_objects)
         else:
-            if model_type == 'zeng':
-                unet_model = zeng.deepfloorplanModel(classes)
-                unet_model.compile(loss=loss_function, optimizer=optimizer,
-                                   metrics=metrics, run_eagerly=run_eagerly)
-            elif model_type == 'cubicasa5k':
-                unet_model = r2v.hg_furukawa_original(len(classes))
-                unet_model.compile(loss=loss_function, optimizer=optimizer,
-                                   metrics=metrics, run_eagerly=run_eagerly)
-            elif model_type == 'unet':
-                unet_model = unet_2d((None, None, 3), n_labels=len(classes), backbone=backbone,
-                                     filter_num=filters, output_activation=output_activation, batch_norm=batch_norm,
-                                     weights=backbone_weights, aaf=(aaf_count > 0))
-
-                unet_model.automatic_loss = loss_function
-                unet_model.loss_sigmas = loss_function.sigmas
-                if aaf_count > 0:
-                    unet_model.w_edge = w_edge
-                    unet_model.w_not_edge = w_not_edge
-                # Apply loss scaling for optimizer
-                unet_model.compile(loss=loss_function.combined_loss(), optimizer=optimizer,
-                                   metrics=metrics, run_eagerly=run_eagerly)
-            elif model_type == 'unetpp':
-                unet_model = sm.Xnet(backbone_name=backbone, classes=len(classes), decoder_filters=filters,
-                                     activation=output_activation, encoder_weights=backbone_weights,
-                                     upsample_rates=up_rates)
-                unet_model.compile(loss=loss_function, optimizer=optimizer,
-                                   metrics=metrics, run_eagerly=run_eagerly)
-            elif model_type == 'unet3p':
-                unet_model = unet_3plus_2d((None, None, 3), n_labels=len(classes), backbone=backbone,
-                                           filter_num_down=filters, output_activation=output_activation,
-                                           batch_norm=batch_norm, weights=backbone_weights, aaf=(aaf_count > 0))
-
-                unet_model.automatic_loss = loss_function
-                unet_model.loss_sigmas = loss_function.sigmas
-                if aaf_count > 0:
-                    unet_model.w_edge = w_edge
-                    unet_model.w_not_edge = w_not_edge
-
-                # Apply loss scaling for optimizer
-                unet_model.compile(loss=loss_function.combined_loss(),
-                                   optimizer=optimizer,
-                                   metrics=metrics,
-                                   run_eagerly=run_eagerly)
-            elif model_type == 'ours_multi':
-                unet_model = ours_multi((None, None, 3), n_labels=len(classes), backbone=backbone,
-                                        filter_num_down=filters,
-                                        output_activation=output_activation,
-                                        batch_norm=batch_norm,
-                                        weights=backbone_weights,
-                                        aaf=(aaf_count > 0))
-
-                unet_model.automatic_loss = loss_function
-                unet_model.loss_sigmas = loss_function.sigmas
-                if aaf_count > 0:
-                    unet_model.w_edge = w_edge
-                    unet_model.w_not_edge = w_not_edge
-                unet_model.compile(loss=loss_function.combined_loss(),
-                                   optimizer=optimizer,
-                                   metrics=metrics,
-                                   run_eagerly=run_eagerly)
-            elif model_type == 'cab1':
-                unet_model = cab1((None, None, 3), n_labels=len(classes), backbone=backbone,
-                                  filter_num_down=filters,
-                                  output_activation=output_activation,
-                                  batch_norm=batch_norm,
-                                  deep_supervision=deep_supervision,
-                                  weights=backbone_weights,
-                                  aaf=(aaf_count > 0),
-                                  use_hhdc=hhdc,
-                                  use_cam=cam)
-
-                unet_model.automatic_loss = loss_function
-                unet_model.loss_sigmas = loss_function.sigmas
-                if aaf_count > 0:
-                    unet_model.w_edge = w_edge
-                    unet_model.w_not_edge = w_not_edge
-                unet_model.compile(loss=loss_function.combined_loss(),
-                                   optimizer=optimizer,
-                                   metrics=metrics,
-                                   run_eagerly=run_eagerly)
-            elif model_type == 'cab2':
-                if baseline:
-                    unet_model = cab2((None, None, 3), n_labels=len(classes), backbone=backbone,
-                                      filter_num_down=filters,
-                                      output_activation=output_activation,
-                                      batch_norm=batch_norm,
-                                      deep_supervision=deep_supervision,
-                                      weights=backbone_weights,
-                                      aaf=(aaf_count > 0),
-                                      use_hhdc=hhdc,
-                                      use_cam=cam)
-                    unet_model.compile(loss=loss_function,
-                                       optimizer=optimizer,
-                                       metrics=metrics,
-                                       run_eagerly=run_eagerly)
-                else:
-                    unet_model = cab2((None, None, 3), n_labels=len(classes), backbone=backbone,
-                                      filter_num_down=filters,
-                                      output_activation=output_activation,
-                                      batch_norm=batch_norm,
-                                      deep_supervision=deep_supervision,
-                                      weights=backbone_weights,
-                                      aaf=(aaf_count > 0),
-                                      use_hhdc=hhdc,
-                                      use_cam=cam)
-
-                    unet_model.automatic_loss = loss_function
-                    unet_model.loss_sigmas = loss_function.sigmas
-                    if aaf_count > 0:
-                        unet_model.w_edge = w_edge
-                        unet_model.w_not_edge = w_not_edge
-                    unet_model.compile(loss=loss_function.combined_loss(),
-                                       optimizer=optimizer,
-                                       metrics=metrics,
-                                       run_eagerly=run_eagerly)
+            unet_model = create_model(model_type, classes, optimizer, loss_function, metrics, run_eagerly, 
+                                      backbone, batch_norm, filters, output_activation, backbone_weights, 
+                                      aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision, hhdc, cam)
 
         print('Used config: ', config)
         early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=30, verbose=verbose)
@@ -371,3 +259,123 @@ def train(config):
 
 if __name__ == "__main__":
     main()
+
+def create_model(model_type: str, classes, optimizer, loss_function, metrics, run_eagerly, backbone, batch_norm, filters,
+                 output_activation, backbone_weights, aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision,
+                 hhdc, cam):
+    if model_type == 'zeng':
+        unet_model = zeng.deepfloorplanModel(classes)
+        unet_model.compile(loss=loss_function, optimizer=optimizer,
+                        metrics=metrics, run_eagerly=run_eagerly)
+    elif model_type == 'cubicasa5k':
+        unet_model = r2v.hg_furukawa_original(len(classes))
+        unet_model.compile(loss=loss_function, optimizer=optimizer,
+                        metrics=metrics, run_eagerly=run_eagerly)
+    elif model_type == 'unet':
+        unet_model = unet_2d((None, None, 3), n_labels=len(classes), backbone=backbone,
+                            filter_num=filters, output_activation=output_activation, batch_norm=batch_norm,
+                            weights=backbone_weights, aaf=(aaf_count > 0))
+
+        unet_model.automatic_loss = loss_function
+        unet_model.loss_sigmas = loss_function.sigmas
+        if aaf_count > 0:
+            unet_model.w_edge = w_edge
+            unet_model.w_not_edge = w_not_edge
+        # Apply loss scaling for optimizer
+        unet_model.compile(loss=loss_function.combined_loss(), optimizer=optimizer,
+                        metrics=metrics, run_eagerly=run_eagerly)
+    elif model_type == 'unetpp':
+        unet_model = sm.Xnet(backbone_name=backbone, classes=len(classes), decoder_filters=filters,
+                            activation=output_activation, encoder_weights=backbone_weights,
+                            upsample_rates=up_rates)
+        unet_model.compile(loss=loss_function, optimizer=optimizer,
+                        metrics=metrics, run_eagerly=run_eagerly)
+    elif model_type == 'unet3p':
+        unet_model = unet_3plus_2d((None, None, 3), n_labels=len(classes), backbone=backbone,
+                                filter_num_down=filters, output_activation=output_activation,
+                                batch_norm=batch_norm, weights=backbone_weights, aaf=(aaf_count > 0))
+
+        unet_model.automatic_loss = loss_function
+        unet_model.loss_sigmas = loss_function.sigmas
+        if aaf_count > 0:
+            unet_model.w_edge = w_edge
+            unet_model.w_not_edge = w_not_edge
+
+        # Apply loss scaling for optimizer
+        unet_model.compile(loss=loss_function.combined_loss(),
+                        optimizer=optimizer,
+                        metrics=metrics,
+                        run_eagerly=run_eagerly)
+    elif model_type == 'ours_multi':
+        unet_model = ours_multi((None, None, 3), n_labels=len(classes), backbone=backbone,
+                                filter_num_down=filters,
+                                output_activation=output_activation,
+                                batch_norm=batch_norm,
+                                weights=backbone_weights,
+                                aaf=(aaf_count > 0))
+
+        unet_model.automatic_loss = loss_function
+        unet_model.loss_sigmas = loss_function.sigmas
+        if aaf_count > 0:
+            unet_model.w_edge = w_edge
+            unet_model.w_not_edge = w_not_edge
+        unet_model.compile(loss=loss_function.combined_loss(),
+                        optimizer=optimizer,
+                        metrics=metrics,
+                        run_eagerly=run_eagerly)
+    elif model_type == 'cab1':
+        unet_model = cab1((None, None, 3), n_labels=len(classes), backbone=backbone,
+                        filter_num_down=filters,
+                        output_activation=output_activation,
+                        batch_norm=batch_norm,
+                        deep_supervision=deep_supervision,
+                        weights=backbone_weights,
+                        aaf=(aaf_count > 0),
+                        use_hhdc=hhdc,
+                        use_cam=cam)
+
+        unet_model.automatic_loss = loss_function
+        unet_model.loss_sigmas = loss_function.sigmas
+        if aaf_count > 0:
+            unet_model.w_edge = w_edge
+            unet_model.w_not_edge = w_not_edge
+        unet_model.compile(loss=loss_function.combined_loss(),
+                        optimizer=optimizer,
+                        metrics=metrics,
+                        run_eagerly=run_eagerly)
+    elif model_type == 'cab2':
+        if baseline:
+            unet_model = cab2((None, None, 3), n_labels=len(classes), backbone=backbone,
+                            filter_num_down=filters,
+                            output_activation=output_activation,
+                            batch_norm=batch_norm,
+                            deep_supervision=deep_supervision,
+                            weights=backbone_weights,
+                            aaf=(aaf_count > 0),
+                            use_hhdc=hhdc,
+                            use_cam=cam)
+            unet_model.compile(loss=loss_function,
+                            optimizer=optimizer,
+                            metrics=metrics,
+                            run_eagerly=run_eagerly)
+        else:
+            unet_model = cab2((None, None, 3), n_labels=len(classes), backbone=backbone,
+                            filter_num_down=filters,
+                            output_activation=output_activation,
+                            batch_norm=batch_norm,
+                            deep_supervision=deep_supervision,
+                            weights=backbone_weights,
+                            aaf=(aaf_count > 0),
+                            use_hhdc=hhdc,
+                            use_cam=cam)
+
+            unet_model.automatic_loss = loss_function
+            unet_model.loss_sigmas = loss_function.sigmas
+            if aaf_count > 0:
+                unet_model.w_edge = w_edge
+                unet_model.w_not_edge = w_not_edge
+            unet_model.compile(loss=loss_function.combined_loss(),
+                            optimizer=optimizer,
+                            metrics=metrics,
+                            run_eagerly=run_eagerly)
+    return unet_model
