@@ -9,9 +9,10 @@ from tqdm import tqdm
 
 def load_train_data(classes, dataset, normalize=True, buffer_size=400, base_dir='data', n_upsample=None,
                     reduction_ratio=None, kfold=None) -> [tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
-    train_dataset = load_dataset(os.path.join(base_dir, dataset + '_train'),
+    tf_record_name = f"{kfold}_" + dataset if kfold is not None else dataset
+    train_dataset = load_dataset(os.path.join(base_dir, tf_record_name + '_train'),
                                  normalize, classes, n_upsample, reduction_ratio, kfold).shuffle(buffer_size)
-    val_dataset = load_dataset(os.path.join(base_dir, dataset + '_val'),
+    val_dataset = load_dataset(os.path.join(base_dir, tf_record_name + '_val'),
                                normalize, classes, n_upsample, reduction_ratio, kfold)
     test_dataset = load_dataset(os.path.join(base_dir, dataset + '_test'),
                                 normalize, classes, n_upsample, reduction_ratio, kfold)
@@ -86,11 +87,8 @@ def preprocess_normalize(img, mask, heatmaps, width, height, classes):
     return img, mask
 
 
-def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None, kfold=None):
-    
-    name = f"{kfold}_" + type if kfold is not None else type
-    
-    raw_dataset = tf.data.TFRecordDataset(name + '.tfrecords')
+def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None):
+    raw_dataset = tf.data.TFRecordDataset(type + '.tfrecords')
     if normalize:
         parsed_dataset = raw_dataset.map(lambda example: _parse_function_normalize(example, classes, n_upsample, reduction_ratio))
     else:
