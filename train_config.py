@@ -346,6 +346,7 @@ def train(config):
                           log_dir_path=config.log_dir)
         
         if kFold > 0:
+            backup = unet_model
             for i in range(kFold):
                 train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                               buffer_size=train_buffer_size,
@@ -353,6 +354,7 @@ def train(config):
                                                                               n_upsample=n_up_sample_block,
                                                                               reduction_ratio=data_reduction, kfold=i)
                 trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
+                unet_model = backup
         else:
             train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                               buffer_size=train_buffer_size,
