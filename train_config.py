@@ -229,12 +229,13 @@ def train(config):
             callbacks.append(reduce_lr)
         if hasattr(unet_model, 'automatic_loss'):
             callbacks.append(AutomaticWeightedLossCallback(aaf_count > 0))
-        trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
-                          learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
-                          log_dir_path=config.log_dir)
         
-        if kFold > 0:
+        if kFold > 0:            
             for i in range(kFold):
+                trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
+                          learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
+                          log_dir_path=config.log_dir + f"_{i}")
+                
                 train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                               buffer_size=train_buffer_size,
                                                                               base_dir=data_root,
@@ -246,6 +247,10 @@ def train(config):
                                       backbone, batch_norm, filters, output_activation, backbone_weights, 
                                       aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision, hhdc, cam)
         else:
+            trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
+                          learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
+                          log_dir_path=config.log_dir)
+            
             train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                               buffer_size=train_buffer_size,
                                                                               base_dir=data_root,
