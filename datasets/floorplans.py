@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 def load_train_data(classes, dataset, normalize=True, buffer_size=400, base_dir='data', n_upsample=None,
                     reduction_ratio=None, kfold=None) -> [tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
-    tf_record_name = f"{kfold}_" + dataset if kfold is not None else dataset
+    tf_record_name = dataset + f"_{kfold}" if kfold is not None else dataset
     train_dataset = load_dataset(os.path.join(base_dir, tf_record_name + '_train'),
                                  normalize, classes, n_upsample, reduction_ratio).shuffle(buffer_size)
     val_dataset = load_dataset(os.path.join(base_dir, tf_record_name + '_val'),
