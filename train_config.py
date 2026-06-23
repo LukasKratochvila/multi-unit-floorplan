@@ -235,7 +235,7 @@ def train(config):
             for i in range(kFold):
                 trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
                           learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
-                          log_dir_path=config.log_dir + f"_{i}")
+                          log_dir_path=config.log_dir + f"/{i}")
                 
                 train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                               buffer_size=train_buffer_size,
