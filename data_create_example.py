@@ -20,7 +20,7 @@ from PIL import ImageShow
 from utils import MyViewer
 
 
-def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, ann_dir, recreate, augment, overlay):
+def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, ann_dir, recreate, augment, overlay, kfold=10):
     ImageShow.register(MyViewer(5), 0)
 
     if 'cubicasa' in data_source:
@@ -48,7 +48,7 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
         # Creation data description and get all samples
         print('Creating dataset splits...')
         sub_dirs = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                                 split_ration=0.8, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
+                                 split_ration=0.8, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=kfold)
         # Creation of masks
         masks = [sub_dir for sub_dir in sub_dirs
                  if not os.path.exists(os.path.join(data_dir, sub_dir, 'mask.png'))]
@@ -66,15 +66,16 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
                                    mask_name='mask.png', save=True)
         # Creation data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(ann_dir)]) or recreate:
-            print('Creating tf records...')
-            create_dataset(data_source, type='default', input_dirs=ann_dir, output_dir=ann_dir,
-                           data_dir=os.path.dirname(data_dir))
+            for i in range(kfold):
+                print(f'Creating tf records for {i} fold...')
+                create_dataset(data_source, type='default', input_dirs=ann_dir, output_dir=ann_dir, 
+                               data_dir=os.path.dirname(data_dir), kfold=i)
 
     elif data_source in ['cubicasa5k', 'cubicasa5k_fix']:
         # Creation data description and get all samples and filtering w.r.o. paper
         print('Creating dataset splits...')
         sub_dirs = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                                 filtering=None, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
+                                 filtering=None, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=kfold)
         # Creation of labels and mask file
         masks = [sub_dir for sub_dir in sub_dirs
                  if not os.path.exists(os.path.join(data_dir, sub_dir, 'mask.png')) or recreate]
@@ -86,9 +87,10 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
                 merge_cubi_labels(mask, data_dir=data_dir)
         # Creation data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(ann_dir)]) or recreate:
-            print('Creating tf records...')
-            create_dataset(data_source, type='cubicasa5k', input_dirs=ann_dir, output_dir=ann_dir,
-                           data_dir=os.path.dirname(data_dir))
+            for i in range(kfold):
+                print(f'Creating tf records for {i} fold...')
+                create_dataset(data_source, type='cubicasa5k', input_dirs=ann_dir, output_dir=ann_dir,
+                               data_dir=os.path.dirname(data_dir), kfold=i)
         if overlay:
             # Create the overlay
             overs = [sub_dir for sub_dir in sub_dirs
@@ -110,13 +112,14 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
         print('Creating dataset splits...')
         cvc_select = [d for d in os.listdir(data_dir) if not d == 'ImagesGT']  # Remove GT folder
         _ = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                          filtering=cvc_select, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
+                          filtering=cvc_select, subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=kfold)
 
         # Creation data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(ann_dir)]) or recreate:
-            print('Creating tf records...')
-            create_dataset(data_source, input_dirs=ann_dir, output_dir=ann_dir,
-                           data_dir=os.path.dirname(data_dir))
+            for i in range(kfold):
+                print(f'Creating tf records for {i} fold...')
+                create_dataset(data_source, input_dirs=ann_dir, output_dir=ann_dir,
+                               data_dir=os.path.dirname(data_dir), kfold=i)
 
     elif data_source == 'MLSTRUCT-FP_v1':
         data_dir = os.path.join(data_dir, data_source)
@@ -128,13 +131,14 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
         # Creation data description
         print('Creating dataset splits...')
         _ = split_kfold_dataset(data_source, input_file=input_image_name, data_dir=data_dir, output_dir=ann_dir,
-                          subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=10)
+                          subfolders_only=os.path.exists(ann_dir) and not recreate, kfold=kfold)
 
         # Creation data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(ann_dir)]) or recreate:
-            print('Creating tf records...')
-            create_dataset(data_source, input_dirs=ann_dir, output_dir=ann_dir,
-                           data_dir=os.path.dirname(data_dir))
+            for i in range(kfold):
+                print(f'Creating tf records for {i} fold...')
+                create_dataset(data_source, input_dirs=ann_dir, output_dir=ann_dir,
+                               data_dir=os.path.dirname(data_dir), kfold=i)
     else:
         print(f"Dataset: {data_source} is not implemented.")
         exit(1)
@@ -152,7 +156,7 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
         if not os.path.exists(aug_data_dir) or recreate:
             augmentation(data_source, input_dir=os.path.dirname(data_dir), output_dir=aug_data_dir, ann_dir=ann_dir)
         sub_dirs = split_kfold_dataset(dataset_augment, input_file=input_image_name, data_dir=aug_data_dir, output_dir=aug_ann_dir,
-                                 subfolders_only=os.path.exists(aug_ann_dir) and not recreate, kfold=10)
+                                 subfolders_only=os.path.exists(aug_ann_dir) and not recreate, kfold=kfold)
         if heatmap_inds:
             # Create heatmaps
             heat = [sub_dir for sub_dir in sub_dirs if not any(['heatmap' in file.split('.')[0] for file in os.listdir(
@@ -160,8 +164,10 @@ def dataset_create(dataset_name, classes, heatmap_inds, data_source, data_dir, a
             create_heatmap_from_paths(dataset_augment, data_dir=os.path.dirname(data_dir), sub_dirs=heat, show=False)
         # Create data tf records
         if not any([file.split('.')[-1] == 'tfrecords' for file in os.listdir(aug_ann_dir)]) or recreate:
-            create_dataset(dataset_augment, type='default', input_dirs=aug_ann_dir, output_dir=aug_ann_dir,
-                           data_dir=os.path.dirname(aug_data_dir))
+            for i in range(kfold):
+                print(f'Creating tf records for {i} fold...')
+                create_dataset(dataset_augment, type='default', input_dirs=aug_ann_dir, output_dir=aug_ann_dir,
+                               data_dir=os.path.dirname(aug_data_dir), kfold=i)
         if overlay:
             # Create the overlay
             overs = [sub_dir for sub_dir in sub_dirs
@@ -200,6 +206,7 @@ if __name__ == '__main__':
     parser.add_argument('-r', action='store_true', help='Recreate all steps flag.')
     parser.add_argument('-o', action='store_true', help='Create overlays.')
     parser.add_argument('-a', action='store_true', help='Apply augmentation.')
+    parser.add_argument('-k', default=10, help='K folds for validation.(10)')
 
     args = parser.parse_args()
     if args.dataset_name not in datasets:
@@ -213,4 +220,4 @@ if __name__ == '__main__':
         exit(1)
 
     dataset_create(args.dataset_name, args.classes, args.heatmap_inds, args.data_source, dat_dir, out_dir,
-                   args.r, args.a, args.o)
+                   args.r, args.a, args.o, args.k)
