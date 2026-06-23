@@ -87,10 +87,9 @@ def preprocess_normalize(img, mask, heatmaps, width, height, classes):
 
 
 def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None, kfold=None):
-    if kfold:
-        name = kfold + "_" + type
-    else:
-        name = type    
+    
+    name = kfold + "_" + type if kfold else type
+    
     raw_dataset = tf.data.TFRecordDataset(name + '.tfrecords')
     if normalize:
         parsed_dataset = raw_dataset.map(lambda example: _parse_function_normalize(example, classes, n_upsample, reduction_ratio))
@@ -112,12 +111,12 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
     val_paths = []
     test_paths = []
 
-    
+    split_filename = dataset + "_" + kfold if kfold else dataset
 
     for input_dir, dataset in zip(input_dirs, datasets):
-        train_paths += open(os.path.join(input_dir, dataset + '_train.txt'), 'r').read().splitlines()
-        val_paths += open(os.path.join(input_dir, dataset + '_val.txt'), 'r').read().splitlines()
-        test_paths += open(os.path.join(input_dir, dataset + '_test.txt'), 'r').read().splitlines()
+        train_paths += open(os.path.join(input_dir, split_filename + '_train.txt'), 'r').read().splitlines()
+        val_paths += open(os.path.join(input_dir, split_filename + '_val.txt'), 'r').read().splitlines()
+        test_paths += open(os.path.join(input_dir, split_filename + '_test.txt'), 'r').read().splitlines()
 
     random.shuffle(train_paths)
     random.shuffle(val_paths)
@@ -127,9 +126,12 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
     # print(len(test_paths))
 
     dataset_name = '_'.join(datasets)
-    write_record(train_paths, name=os.path.join(output_dir, dataset_name + '_train'), type=type, data_dir=data_dir)
-    write_record(val_paths, name=os.path.join(output_dir, dataset_name + '_val'), type=type, data_dir=data_dir)
-    write_record(test_paths, name=os.path.join(output_dir, dataset_name + '_test'), type=type, data_dir=data_dir)
+
+    tf_record_filename = dataset_name + "_" + kfold if kfold else dataset_name
+
+    write_record(train_paths, name=os.path.join(output_dir, tf_record_filename + '_train'), type=type, data_dir=data_dir)
+    write_record(val_paths, name=os.path.join(output_dir, tf_record_filename + '_val'), type=type, data_dir=data_dir)
+    write_record(test_paths, name=os.path.join(output_dir, tf_record_filename + '_test'), type=type, data_dir=data_dir)
 
 
 def write_record(paths, name, type, data_dir='annotations/hdd/'):
