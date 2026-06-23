@@ -233,12 +233,6 @@ def train(config):
         if kFold > 0:
             acc = []            
             for i in range(kFold):
-                if optimizer_var.get('type', None) == 'Adam':
-                    loss_scale = optimizer_var.get('lossScale', None)
-                    optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer_var.get('learning_rate', 1e-4))
-                    if loss_scale:
-                        optimizer = LossScaleOptimizer(optimizer, loss_scale='dynamic')
-
                 trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
                           learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
                           log_dir_path=config.log_dir + f"/{i}")
@@ -252,6 +246,12 @@ def train(config):
                 acc.append(h.history["categorical_accuracy"])
 
                 del unet_model, trainer, optimizer
+
+                if optimizer_var.get('type', None) == 'Adam':
+                    loss_scale = optimizer_var.get('lossScale', None)
+                    optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer_var.get('learning_rate', 1e-4))
+                    if loss_scale:
+                        optimizer = LossScaleOptimizer(optimizer, loss_scale='dynamic')
                 
                 unet_model = create_model(model_type, classes, optimizer, loss_function, metrics, run_eagerly, 
                                       backbone, batch_norm, filters, output_activation, backbone_weights, 
