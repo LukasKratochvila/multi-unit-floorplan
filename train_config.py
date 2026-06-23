@@ -245,6 +245,8 @@ def train(config):
                 h = trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
                 acc.append(h.history["categorical_accuracy"])
 
+                del unet_model
+                tf.keras.backend.clear_session()
                 unet_model = create_model(model_type, classes, optimizer, loss_function, metrics, run_eagerly, 
                                       backbone, batch_norm, filters, output_activation, backbone_weights, 
                                       aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision, hhdc, cam)
