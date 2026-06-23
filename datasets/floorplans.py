@@ -8,13 +8,13 @@ from tqdm import tqdm
 
 
 def load_train_data(classes, dataset, normalize=True, buffer_size=400, base_dir='data', n_upsample=None,
-                    reduction_ratio=None) -> [tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
+                    reduction_ratio=None, kfold=None) -> [tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
     train_dataset = load_dataset(os.path.join(base_dir, dataset + '_train'),
-                                 normalize, classes, n_upsample, reduction_ratio).shuffle(buffer_size)
+                                 normalize, classes, n_upsample, reduction_ratio, kfold).shuffle(buffer_size)
     val_dataset = load_dataset(os.path.join(base_dir, dataset + '_val'),
-                               normalize, classes, n_upsample, reduction_ratio)
+                               normalize, classes, n_upsample, reduction_ratio, kfold)
     test_dataset = load_dataset(os.path.join(base_dir, dataset + '_test'),
-                                normalize, classes, n_upsample, reduction_ratio)
+                                normalize, classes, n_upsample, reduction_ratio, kfold)
     return train_dataset, val_dataset, test_dataset
 
 
@@ -86,8 +86,12 @@ def preprocess_normalize(img, mask, heatmaps, width, height, classes):
     return img, mask
 
 
-def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None):
-    raw_dataset = tf.data.TFRecordDataset(type + '.tfrecords')
+def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None, kfold=None):
+    if kfold:
+        name = kfold + "_" + type
+    else:
+        name = type    
+    raw_dataset = tf.data.TFRecordDataset(name + '.tfrecords')
     if normalize:
         parsed_dataset = raw_dataset.map(lambda example: _parse_function_normalize(example, classes, n_upsample, reduction_ratio))
     else:
@@ -95,7 +99,7 @@ def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None
     return parsed_dataset
 
 
-def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', data_dir='annotations/hdd/'):
+def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', data_dir='annotations/hdd/', kfold=None):
 
     if isinstance(datasets, list):
         assert len(datasets) == len(input_dirs), "Number of datasets and input dirs have to agree!"
@@ -107,6 +111,9 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
     train_paths = []
     val_paths = []
     test_paths = []
+
+    
+
     for input_dir, dataset in zip(input_dirs, datasets):
         train_paths += open(os.path.join(input_dir, dataset + '_train.txt'), 'r').read().splitlines()
         val_paths += open(os.path.join(input_dir, dataset + '_val.txt'), 'r').read().splitlines()
