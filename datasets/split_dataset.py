@@ -140,7 +140,7 @@ def split_kfold_dataset(dataset, input_file: str = 'input.png', data_dir: str = 
     return sub_dirs
 
 def copy_filenames(output_dir: str, dataset: str, dataset_type: str, dataset_idx: list, fold: int = None, input_file: str = "input.png", heatmaps: list = None):
-    split_filename = dataset + '_' + fold + '_' + dataset_type if fold else dataset + '_' + dataset_type
+    split_filename = dataset + f'_{fold}_' + dataset_type if fold else dataset + '_' + dataset_type
     f = open(os.path.join(output_dir, split_filename + '.txt'), 'w')
     for i in dataset_idx:
         input = os.path.join(dataset, i, input_file)
