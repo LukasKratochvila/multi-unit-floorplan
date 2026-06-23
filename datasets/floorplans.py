@@ -116,7 +116,7 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
 
         train_paths += open(os.path.join(input_dir, split_filename + '_train.txt'), 'r').read().splitlines()
         val_paths += open(os.path.join(input_dir, split_filename + '_val.txt'), 'r').read().splitlines()
-        test_paths += open(os.path.join(input_dir, split_filename + '_test.txt'), 'r').read().splitlines()
+        test_paths += open(os.path.join(input_dir, dataset + '_test.txt'), 'r').read().splitlines()
 
     random.shuffle(train_paths)
     random.shuffle(val_paths)
@@ -131,7 +131,7 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
 
     write_record(train_paths, name=os.path.join(output_dir, tf_record_filename + '_train'), type=type, data_dir=data_dir)
     write_record(val_paths, name=os.path.join(output_dir, tf_record_filename + '_val'), type=type, data_dir=data_dir)
-    write_record(test_paths, name=os.path.join(output_dir, tf_record_filename + '_test'), type=type, data_dir=data_dir)
+    write_record(test_paths, name=os.path.join(output_dir, dataset_name + '_test'), type=type, data_dir=data_dir)
 
 
 def write_record(paths, name, type, data_dir='annotations/hdd/'):
