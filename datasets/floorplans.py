@@ -88,7 +88,7 @@ def preprocess_normalize(img, mask, heatmaps, width, height, classes):
 
 def load_dataset(type, normalize, classes, n_upsample=None, reduction_ratio=None, kfold=None):
     
-    name = f"{kfold}_" + type if kfold else type
+    name = f"{kfold}_" + type if kfold is not None else type
     
     raw_dataset = tf.data.TFRecordDataset(name + '.tfrecords')
     if normalize:
@@ -112,7 +112,7 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
     test_paths = []
 
     for input_dir, dataset in zip(input_dirs, datasets):
-        split_filename = dataset + f"_{kfold}" if kfold else dataset
+        split_filename = dataset + f"_{kfold}" if kfold is not None else dataset
 
         train_paths += open(os.path.join(input_dir, split_filename + '_train.txt'), 'r').read().splitlines()
         val_paths += open(os.path.join(input_dir, split_filename + '_val.txt'), 'r').read().splitlines()
@@ -127,7 +127,7 @@ def create_dataset(datasets, type='default', input_dirs='./', output_dir='./', d
 
     dataset_name = '_'.join(datasets)
 
-    tf_record_filename = dataset_name + f"_{kfold}" if kfold else dataset_name
+    tf_record_filename = dataset_name + f"_{kfold}" if kfold is not None else dataset_name
 
     write_record(train_paths, name=os.path.join(output_dir, tf_record_filename + '_train'), type=type, data_dir=data_dir)
     write_record(val_paths, name=os.path.join(output_dir, tf_record_filename + '_val'), type=type, data_dir=data_dir)
