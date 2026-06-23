@@ -11,11 +11,11 @@ def load_train_data(classes, dataset, normalize=True, buffer_size=400, base_dir=
                     reduction_ratio=None, kfold=None) -> [tf.data.Dataset, tf.data.Dataset, tf.data.Dataset]:
     tf_record_name = f"{kfold}_" + dataset if kfold is not None else dataset
     train_dataset = load_dataset(os.path.join(base_dir, tf_record_name + '_train'),
-                                 normalize, classes, n_upsample, reduction_ratio, kfold).shuffle(buffer_size)
+                                 normalize, classes, n_upsample, reduction_ratio).shuffle(buffer_size)
     val_dataset = load_dataset(os.path.join(base_dir, tf_record_name + '_val'),
-                               normalize, classes, n_upsample, reduction_ratio, kfold)
+                               normalize, classes, n_upsample, reduction_ratio)
     test_dataset = load_dataset(os.path.join(base_dir, dataset + '_test'),
-                                normalize, classes, n_upsample, reduction_ratio, kfold)
+                                normalize, classes, n_upsample, reduction_ratio)
     return train_dataset, val_dataset, test_dataset
 
 
