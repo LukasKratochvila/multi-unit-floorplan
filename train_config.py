@@ -18,6 +18,8 @@ from segmentation_models.models.unet3plus.model_unet_3plus_2d import unet_3plus_
 from training import Trainer, loss_functions
 from training.AutomaticWeightedLoss import AutomaticWeightedLoss, AutomaticWeightedLossCallback
 
+import numpy as np
+
 from tqdm.keras import TqdmCallback
 from utils import Config, mkdir_or_exist, get_args_dict
 
@@ -120,6 +122,7 @@ def train(config):
     cfg_metrics = config.get('metrics', [])
     run_eagerly = config.get('run_eagerly', False)
     verbose = config.get('verbose', 0)
+    kFold = config.get('kFold', 0)
 
     if not dataset:
         ValueError('Dataset must be specify!')
@@ -328,12 +331,6 @@ def train(config):
                                        run_eagerly=run_eagerly)
 
         print('Used config: ', config)
-        train_dataset, validation_dataset, test_dataset = floorplans.load_train_data(classes, dataset,
-                                                                                     normalize=normalize,
-                                                                                     buffer_size=train_buffer_size,
-                                                                                     base_dir=data_root,
-                                                                                     n_upsample=n_up_sample_block,
-                                                                                     reduction_ratio=data_reduction)
         early_stop = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=30, verbose=verbose)
         progbar = TqdmCallback(verbose=2)
 
@@ -347,12 +344,22 @@ def train(config):
         trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
                           learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
                           log_dir_path=config.log_dir)
-        trainer.fit(unet_model,
-                    train_dataset,
-                    validation_dataset,
-                    epochs=epochs,
-                    batch_size=batch_size,
-                    verbose=verbose)
+        
+        if kFold > 0:
+            for i in range(kFold):
+                train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
+                                                                              buffer_size=train_buffer_size,
+                                                                              base_dir=data_root,
+                                                                              n_upsample=n_up_sample_block,
+                                                                              reduction_ratio=data_reduction, kfold=i)
+                trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
+        else:
+            train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
+                                                                              buffer_size=train_buffer_size,
+                                                                              base_dir=data_root,
+                                                                              n_upsample=n_up_sample_block,
+                                                                              reduction_ratio=data_reduction)
+            trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
     del unet_model
     tf.keras.backend.clear_session()
