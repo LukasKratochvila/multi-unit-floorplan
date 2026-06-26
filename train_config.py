@@ -65,8 +65,19 @@ def main():
                 print(f'Warning: option {key} is not in config.')
 
         tic = time.time()
-        train(cfg)
+        kFold = cfg.get('kFold', 0)
+        cfg.acc = []
+        if kFold > 0:
+            for i in range(kFold):
+                h = train(cfg, i)
+                cfg.acc.append(h.history["categorical_accuracy"])
+        else:
+            h = train(cfg)
+            cfg.acc.append(h.history["categorical_accuracy"])
         toc = time.time()
+
+        print("Results")
+        print(",".join(map(str, config.acc)))
 
         cfg.training_time = toc - tic
 
@@ -82,7 +93,7 @@ def main():
     print('Finished')
 
 
-def train(config):
+def train(config, fold=None):
     strategy = tf.distribute.MirroredStrategy()
     print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
@@ -122,7 +133,6 @@ def train(config):
     cfg_metrics = config.get('metrics', [])
     run_eagerly = config.get('run_eagerly', False)
     verbose = config.get('verbose', 0)
-    kFold = config.get('kFold', 0)
 
     if not dataset:
         ValueError('Dataset must be specify!')
@@ -230,49 +240,22 @@ def train(config):
         if hasattr(unet_model, 'automatic_loss'):
             callbacks.append(AutomaticWeightedLossCallback(aaf_count > 0))
         
-        if kFold > 0:
-            config.acc = []            
-            for i in range(kFold):
-                trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
-                          learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
-                          log_dir_path=config.log_dir + f"/{i}")
-                
-                train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
-                                                                              buffer_size=train_buffer_size,
-                                                                              base_dir=data_root,
-                                                                              n_upsample=n_up_sample_block,
-                                                                              reduction_ratio=data_reduction, kfold=i)
-                h = trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
-                config.acc.append(h.history["categorical_accuracy"])
-
-                del unet_model, trainer, optimizer
-
-                if optimizer_var.get('type', None) == 'Adam':
-                    loss_scale = optimizer_var.get('lossScale', None)
-                    optimizer = tf.keras.optimizers.Adam(learning_rate=optimizer_var.get('learning_rate', 1e-4))
-                    if loss_scale:
-                        optimizer = LossScaleOptimizer(optimizer, loss_scale='dynamic')
-                
-                unet_model = create_model(model_type, classes, optimizer, loss_function, metrics, run_eagerly, 
-                                      backbone, batch_norm, filters, output_activation, backbone_weights, 
-                                      aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision, hhdc, cam)
-            print("Results")
-            print(",".join(map(str, config.acc)))
-        else:
-            trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
-                          learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
-                          log_dir_path=config.log_dir)
-            
-            train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
-                                                                              buffer_size=train_buffer_size,
-                                                                              base_dir=data_root,
-                                                                              n_upsample=n_up_sample_block,
-                                                                              reduction_ratio=data_reduction)
-            trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
+        trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
+                        learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
+                        log_dir_path=config.log_dir)
+        
+        train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
+                                                                            buffer_size=train_buffer_size,
+                                                                            base_dir=data_root,
+                                                                            n_upsample=n_up_sample_block,
+                                                                            reduction_ratio=data_reduction,
+                                                                            kfold=fold)
+        history = trainer.fit(unet_model, train_dataset, validation_dataset, epochs=epochs, batch_size=batch_size, verbose=verbose)
 
     del unet_model
     tf.keras.backend.clear_session()
     print('========== DONE ==========')
+    return history
 
 def create_model(model_type: str, classes, optimizer, loss_function, metrics, run_eagerly, backbone, batch_norm, filters,
                  output_activation, backbone_weights, aaf_count, w_edge, w_not_edge, up_rates, baseline, deep_supervision,
