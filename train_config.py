@@ -66,18 +66,20 @@ def main():
 
         tic = time.time()
         kFold = cfg.get('kFold', 0)
-        cfg.acc = []
+        cfg.hist = []
         if kFold > 0:
             for i in range(kFold):
+                tic_fold = time.time()
+                print(f'========== Train fold: {i} ==========')
                 h = train(cfg, i)
-                cfg.acc.append(h.history["categorical_accuracy"])
+                cfg.hist.append(h.history)
+                cfgs = Config(cfg_dict=dict(train_cfg=cfg.to_dict()))
+                cfgs.dump(os.path.join(cfg.train_cfg.log_dir, 'training_cfg.py'))
+                toc_fold = time.time()
         else:
             h = train(cfg)
-            cfg.acc.append(h.history["categorical_accuracy"])
+            cfg.hist.append(h.history)
         toc = time.time()
-
-        print("Results")
-        print(",".join(map(str, config.acc)))
 
         cfg.training_time = toc - tic
 
@@ -85,10 +87,6 @@ def main():
         cfg.dump(os.path.join(cfg.train_cfg.log_dir, 'training_cfg.py'))
 
         print('total training time = {} minutes'.format((toc - tic) / 60))
-        print()
-        print('Waiting 1 min')
-        time.sleep(60)
-        print('Resuming')
         print()
     print('Finished')
 
@@ -242,7 +240,7 @@ def train(config, fold=None):
         
         trainer = Trainer(checkpoint_callback=True, checkpoint_weights_only=checkpoint_weights_only,
                         learning_rate_scheduler=None, tensorboard_images_callback=False, callbacks=callbacks,
-                        log_dir_path=config.log_dir)
+                        log_dir_path=config.log_dir + f"/{fold}")
         
         train_dataset, validation_dataset, _ = floorplans.load_train_data(classes, dataset, normalize=normalize,
                                                                             buffer_size=train_buffer_size,
